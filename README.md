@@ -1,7 +1,7 @@
 # quantum-web-crawler-feature-encoding
 An experimental quantum web crawler with website feature encoding. Created with Qiskit, networkx etc.
 
-![Quantum Web Crawler with Feature Encoding](path/to/image.png)
+![Quantum Web Crawler with Feature Encoding](https://github.com/stingraze/quantum-web-crawler-feature-encoding/blob/main/crawl-graph-quantum-web-crawler.jpg)
 
 (C)Tsubasa Kato - Inspire Search Corp. 2026/4/12
 
