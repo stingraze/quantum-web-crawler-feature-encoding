@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quantum Web Crawler with Features Encoding</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar glass">
+        <div>
+          <p class="eyebrow">Flask · NetworkX · Qiskit · Async SSE</p>
+          <h1>Quantum Web Crawler with Features Encoding</h1>
+          <p class="subhead">Live site-map partitioning, asynchronous crawling, and per-page feature encoding into a quantum circuit.</p>
+        </div>
+        <div class="status-pill idle" id="runStatus">Idle</div>
+      </header>
+
+      <section class="control-grid">
+        <div class="panel glass control-panel">
+          <div class="section-title">Crawl controls</div>
+          <div class="form-grid">
+            <label>
+              <span>Seed URL</span>
+              <input id="seedUrl" type="url" placeholder="https://example.com" value="https://example.com">
+            </label>
+            <label>
+              <span>Max pages</span>
+              <input id="maxPages" type="number" min="1" max="300" value="40">
+            </label>
+            <label>
+              <span>Max depth</span>
+              <input id="maxDepth" type="number" min="0" max="6" value="2">
+            </label>
+            <label>
+              <span>Concurrency</span>
+              <input id="concurrency" type="number" min="1" max="20" value="5">
+            </label>
+            <label>
+              <span>Timeout (sec)</span>
+              <input id="requestTimeout" type="number" min="3" max="60" value="15">
+            </label>
+            <label class="toggle-row">
+              <span>Same domain only</span>
+              <input id="sameDomainOnly" type="checkbox" checked>
+            </label>
+          </div>
+          <div class="action-row">
+            <button id="startBtn" class="primary-btn">Start crawl</button>
+            <button id="stopBtn" class="secondary-btn">Stop</button>
+          </div>
+        </div>
+
+        <div class="panel glass stats-panel">
+          <div class="section-title">Live metrics</div>
+          <div class="stats-grid" id="statsGrid"></div>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="panel glass graph-panel">
+          <div class="panel-header">
+            <div>
+              <div class="section-title">Realtime crawl graph</div>
+              <div class="section-subtitle">Nodes are grouped with recursive Kernighan–Lin bisection and animated into separated clusters.</div>
+            </div>
+            <div class="legend">
+              <span class="legend-chip queued">Queued</span>
+              <span class="legend-chip fetching">Fetching</span>
+              <span class="legend-chip crawled">Crawled</span>
+              <span class="legend-chip error">Error</span>
+            </div>
+          </div>
+          <div id="graphWrap">
+            <svg id="graphSvg"></svg>
+            <div id="graphTooltip" class="tooltip hidden"></div>
+          </div>
+        </div>
+
+        <div class="side-column">
+          <div class="panel glass details-panel">
+            <div class="section-title">Selected page</div>
+            <div id="nodeDetails" class="details-empty">Select a node to inspect the crawled page, URL, depth, and extracted features.</div>
+          </div>
+
+          <div class="panel glass circuit-panel">
+            <div class="section-title">Quantum circuit encoding</div>
+            <div class="section-subtitle">Each page is converted into 6 normalized features and encoded into a Qiskit circuit.</div>
+            <div class="circuit-frame">
+              <img id="circuitImage" alt="Latest quantum circuit" />
+              <div id="circuitPlaceholder" class="details-empty">The latest page circuit will appear here during crawling.</div>
+            </div>
+            <div id="featureCards" class="feature-cards"></div>
+          </div>
+
+          <div class="panel glass log-panel">
+            <div class="section-title">Stream log</div>
+            <div id="logList" class="log-list"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
