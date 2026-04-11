@@ -5,3 +5,4 @@ qiskit-aer>=0.14
 matplotlib>=3.8
 beautifulsoup4>=4.12
 aiohttp>=3.9
+pylatexenc
