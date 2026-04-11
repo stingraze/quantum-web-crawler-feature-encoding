@@ -5,7 +5,7 @@ An experimental quantum web crawler with website feature encoding. Created with 
 
 ![Website Features' Encoding](https://github.com/stingraze/quantum-web-crawler-feature-encoding/blob/main/quantum-web-features.jpg)
 
-(C)Tsubasa Kato - Inspire Search Corp. 2026/4/12
+&copy; Tsubasa Kato - Inspire Search Corp. 2026/4/12
 
 Created with the help of ChatGPT 5.4
 
