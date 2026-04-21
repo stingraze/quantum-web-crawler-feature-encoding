@@ -4,6 +4,7 @@ const el = {
   maxDepth: document.getElementById("maxDepth"),
   concurrency: document.getElementById("concurrency"),
   requestTimeout: document.getElementById("requestTimeout"),
+  maxQuantumPages: document.getElementById("maxQuantumPages"),
   sameDomainOnly: document.getElementById("sameDomainOnly"),
   startBtn: document.getElementById("startBtn"),
   stopBtn: document.getElementById("stopBtn"),
@@ -24,6 +25,7 @@ const state = {
   graph: { nodes: [], edges: [] },
   meta: {},
   latestCircuitMeta: null,
+  pageQuantum: new Map(),
   graphView: {
     initialized: false,
     width: 800,
@@ -45,6 +47,7 @@ const STATUS_COLORS = {
   queued: "var(--status-queued)",
   fetching: "var(--status-fetching)",
   crawled: "var(--status-crawled)",
+  quantum_skipped_limit: "var(--status-fetching)",
   error: "var(--status-error)",
   unknown: "var(--status-unknown)",
 };
@@ -77,6 +80,8 @@ function renderStats(meta = {}) {
     ["Edges", meta.edge_count ?? 0],
     ["Queued", meta.queued_count ?? 0],
     ["Visited", meta.visited_count ?? 0],
+    ["Extracted", meta.extracted_count ?? 0],
+    ["Quantum cap", meta.config?.max_quantum_pages ?? 0],
     ["Errors", meta.error_count ?? 0],
     ["Duration", `${meta.duration_sec ?? 0}s`],
   ];
@@ -104,7 +109,9 @@ function renderDetails() {
     return;
   }
 
-  const featureEntries = Object.entries(node.features || {});
+  const quantumRecord = state.pageQuantum.get(node.url) || null;
+  const featureSource = quantumRecord?.features || node.features || {};
+  const featureEntries = Object.entries(featureSource);
   const featuresHtml = featureEntries.length
     ? featureEntries
         .map(
@@ -124,19 +131,20 @@ function renderDetails() {
         <span class="status-dot" style="background:${STATUS_COLORS[node.status] || STATUS_COLORS.unknown}"></span>
         <strong>${escapeHtml(node.label || node.url)}</strong>
       </div>
-      <div class="detail-meta"><span>Status</span><strong>${escapeHtml(node.status)}</strong></div>
-      <div class="detail-meta"><span>Depth</span><strong>${node.depth ?? 0}</strong></div>
+      <div class="detail-meta"><span>Status</span><strong>${escapeHtml(quantumRecord?.status || node.status)}</strong></div>
+      <div class="detail-meta"><span>Depth</span><strong>${quantumRecord?.depth ?? node.depth ?? 0}</strong></div>
       <div class="detail-meta"><span>Domain</span><strong>${escapeHtml(node.domain || "")}</strong></div>
+      <div class="detail-meta"><span>Quantum</span><strong>${quantumRecord?.has_circuit ? "Extracted" : (quantumRecord?.status === "quantum_skipped_limit" ? "Skipped by limit" : "Pending")}</strong></div>
       <div class="detail-url">${escapeHtml(node.url || "")}</div>
       ${node.title ? `<div class="detail-title">${escapeHtml(node.title)}</div>` : ""}
-      ${node.error ? `<div class="detail-error">${escapeHtml(node.error)}</div>` : ""}
+      ${(quantumRecord?.error || node.error) ? `<div class="detail-error">${escapeHtml(quantumRecord?.error || node.error)}</div>` : ""}
       <div class="detail-divider"></div>
       <div class="mini-feature-grid">${featuresHtml}</div>
     </div>
   `;
 }
 
-function renderCircuit(meta = state.latestCircuitMeta) {
+function renderCircuit(meta = state.latestCircuitMeta, imageUrl = null) {
   state.latestCircuitMeta = meta || null;
   const hasCircuit = !!meta;
   el.circuitImage.style.display = hasCircuit ? "block" : "none";
@@ -147,7 +155,7 @@ function renderCircuit(meta = state.latestCircuitMeta) {
     return;
   }
 
-  el.circuitImage.src = `/api/circuit/latest.png?t=${Date.now()}`;
+  el.circuitImage.src = imageUrl || `/api/circuit/latest.png?t=${Date.now()}`;
   const features = Object.entries(meta.features || {});
   el.featureCards.innerHTML = `
     <div class="feature-card lead">
@@ -167,6 +175,39 @@ function renderCircuit(meta = state.latestCircuitMeta) {
       )
       .join("")}
   `;
+}
+
+
+function ingestPageQuantum(items = []) {
+  state.pageQuantum = new Map((items || []).map((item) => [item.url, item]));
+}
+
+async function renderCircuitForSelectedNode() {
+  const node = state.graph.nodes.find((n) => n.id === state.selectedNodeId);
+  if (!node) {
+    renderCircuit(null);
+    return;
+  }
+
+  const record = state.pageQuantum.get(node.url);
+  if (!record?.has_circuit) {
+    if (state.latestCircuitMeta && state.latestCircuitMeta.url === node.url) {
+      renderCircuit(state.latestCircuitMeta);
+    } else {
+      renderCircuit(null);
+    }
+    return;
+  }
+
+  try {
+    const data = await api(`/api/page-quantum?url=${encodeURIComponent(node.url)}`);
+    const item = data.item || record;
+    state.pageQuantum.set(node.url, item);
+    renderCircuit(item, `/api/circuit/by-url.png?url=${encodeURIComponent(node.url)}&t=${Date.now()}`);
+  } catch (error) {
+    logMessage(error.message, "error");
+    renderCircuit(null);
+  }
 }
 
 function escapeHtml(value) {
@@ -190,11 +231,15 @@ function mountStream() {
     const payload = JSON.parse(event.data);
     state.graph = payload.graph || { nodes: [], edges: [] };
     state.meta = payload.meta || {};
+    ingestPageQuantum(payload.page_quantum || []);
     renderStats(state.meta);
     renderGraph();
     renderDetails();
     if (payload.latest_circuit_meta) {
       renderCircuit(payload.latest_circuit_meta);
+    }
+    if (state.selectedNodeId) {
+      renderCircuitForSelectedNode();
     }
     if (payload.message) {
       logMessage(payload.message, "snapshot");
@@ -429,6 +474,7 @@ function renderGraph() {
               .on("click", (_, d) => {
                 state.selectedNodeId = d.id;
                 renderDetails();
+                renderCircuitForSelectedNode();
                 refreshNodeStyles();
               })
               .call(
@@ -617,6 +663,7 @@ async function startCrawl() {
       max_depth: Number(el.maxDepth.value),
       concurrency: Number(el.concurrency.value),
       request_timeout: Number(el.requestTimeout.value),
+      max_quantum_pages: Number(el.maxQuantumPages.value),
       same_domain_only: el.sameDomainOnly.checked,
     };
     const data = await api("/api/crawl/start", {
@@ -645,6 +692,7 @@ async function boot() {
   const initial = await api("/api/state");
   state.graph = initial.graph || { nodes: [], edges: [] };
   state.meta = initial.meta || {};
+  ingestPageQuantum(initial.page_quantum || []);
   renderStats(state.meta);
   renderGraph();
   renderDetails();
