@@ -10,3 +10,6 @@ An experimental quantum web crawler with website feature encoding. Created with 
 Created with the help of ChatGPT 5.4
 
 Tested to work using uv Python package manager under macOS 15.x
+
+Update: 4/21/2026
+Bug Fixed where the websites did not provide different quantum features.
