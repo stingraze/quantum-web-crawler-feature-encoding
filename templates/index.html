@@ -45,6 +45,10 @@
               <span>Timeout (sec)</span>
               <input id="requestTimeout" type="number" min="3" max="60" value="15">
             </label>
+            <label>
+              <span>Max quantum pages</span>
+              <input id="maxQuantumPages" type="number" min="1" max="100" value="75">
+            </label>
             <label class="toggle-row">
               <span>Same domain only</span>
               <input id="sameDomainOnly" type="checkbox" checked>
@@ -90,7 +94,7 @@
 
           <div class="panel glass circuit-panel">
             <div class="section-title">Quantum circuit encoding</div>
-            <div class="section-subtitle">Each page is converted into 6 normalized features and encoded into a Qiskit circuit.</div>
+            <div class="section-subtitle">Each selected page can be converted into 6 normalized features and encoded into a Qiskit circuit, up to the configured quantum-page cap.</div>
             <div class="circuit-frame">
               <img id="circuitImage" alt="Latest quantum circuit" />
               <div id="circuitPlaceholder" class="details-empty">The latest page circuit will appear here during crawling.</div>
